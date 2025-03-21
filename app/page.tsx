@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Hourglass from "@/app/HourGlass";
+import Hourglass from "@/app/core/components/HourGlass";
 
 export default function Home() {
   return (
@@ -8,7 +8,6 @@ export default function Home() {
         <Hourglass/>
       </main>
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-       Footer
       </footer>
     </div>
   );
