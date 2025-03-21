@@ -28,7 +28,7 @@ export default function HourglassPage() {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-pink-100 to-purple-100 p-4 text-center">
-            <h1 className="text-4xl font-bold text-pink-500 mb-6">⏳ Magische Sanduhr</h1>
+            <h1 className="text-4xl font-bold text-pink-500 mb-6">⏳ Magische Sanduhr ⏳</h1>
 
             {!start ? (
                 <StartForm

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import HourglassSVG from './HourglassSVG';
 
 type HourglassTimerProps = {
@@ -11,32 +11,59 @@ type HourglassTimerProps = {
 export default function HourglassTimer({ name, totalSeconds, onReset }: HourglassTimerProps) {
     const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
     const [duration] = useState(totalSeconds);
+    const startTimeRef = useRef<number | null>(null);
+    const requestRef = useRef<number | null>(null);
+
+    // Accurate time tracking
+    const updateTimer = (timestamp: number) => {
+        if (!startTimeRef.current) startTimeRef.current = timestamp;
+
+        const elapsedMs = timestamp - startTimeRef.current;
+        const elapsedSeconds = Math.floor(elapsedMs / 1000);
+        const remaining = Math.max(duration - elapsedSeconds, 0);
+
+        setSecondsLeft(remaining);
+
+        if (remaining > 0) {
+            requestRef.current = requestAnimationFrame(updateTimer);
+        } else {
+            playBeep();
+        }
+    };
+
+    // Start the animation loop
+    useEffect(() => {
+        requestRef.current = requestAnimationFrame(updateTimer);
+        return () => {
+            if (requestRef.current) cancelAnimationFrame(requestRef.current);
+        };
+    }, []);
 
     useEffect(() => {
-        if (secondsLeft <= 0) {
-            // Erzeuge einen kurzen Piepton mit der Web Audio API
-            const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-            const audioCtx = new AudioContext();
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.type = 'sine'; // Du kannst auch 'square' oder 'triangle' verwenden
-            oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // A4 (440 Hz)
-            oscillator.start();
-
-            // Stoppe den Ton nach 0,5 Sekunden
-            oscillator.stop(audioCtx.currentTime + 0.5);
-            return;
+        let wakeLock: any = null;
+        if ('wakeLock' in navigator) {
+            navigator.wakeLock.request('screen').then((lock) => {
+                wakeLock = lock;
+            });
         }
+        return () => {
+            if (wakeLock) wakeLock.release();
+        };
+    }, []);
 
-        const timer = setInterval(() => {
-            setSecondsLeft((prev) => prev - 1);
-        }, 1000);
+    const playBeep = () => {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        const audioCtx = new AudioContext();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
 
-        return () => clearInterval(timer);
-    }, [secondsLeft]);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.5);
+    };
 
     const formatTime = (secs: number) => {
         const hrs = Math.floor(secs / 3600).toString().padStart(2, '0');
